@@ -38,15 +38,17 @@ export default function RootLayout() {
         <PersistGate loading={null} persistor={persistor}>
           <AuthProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <View style={{ flex: 1 }} className="min-h-screen">
+              <View style={{ flex: 1 }}>
                 <Navbar />
-                <Stack>
-                  <Stack.Screen name="index" options={{ headerShown: false }} />
-                  <Stack.Screen name="(public)" options={{ headerShown: false }} />
-                  <Stack.Screen name="(authenticated)" options={{ headerShown: false }} />
-                  <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
-                </Stack>
-                <Footer />
+                <View style={{ flex: 1 }}>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="index" options={{ headerShown: false }} />
+                    <Stack.Screen name="(public)" options={{ headerShown: false }} />
+                    <Stack.Screen name="(authenticated)" options={{ headerShown: false }} />
+                    <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
+                  </Stack>
+                </View>
+                {/* <Footer /> */}
                 <StatusBar style="auto" />
               </View>
             </ThemeProvider>
