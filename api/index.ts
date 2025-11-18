@@ -34,14 +34,47 @@ export const authAPI = {
 
 // Client API calls
 export const clientAPI = {
+  // Register client (public)
+  registerClient: (clientData: any) => api.post('/api/clients/register', clientData),
+
+  // Login client (public)
+  loginClient: (credentials: any) => api.post('/api/clients/login', credentials),
+
+  // Verify OTP (public)
+  verifyClientOTP: (otpData: any) => api.post('/api/clients/verify-otp', otpData),
+
+  // Resend OTP (public)
+  resendClientOTP: (emailData: any) => api.post('/api/clients/resend-otp', emailData),
+
+  // Forgot password (public)
+  forgotClientPassword: (email: string) => api.post('/api/clients/forgot-password', { email }),
+
+  // Reset password (public)
+  resetClientPassword: (token: string, newPassword: string) =>
+    api.post(`/api/clients/reset-password/${token}`, { newPassword }),
+
+  // Get client profile (protected)
+  getClientProfile: () => api.get('/api/clients/profile'),
+
+  // Update client profile (protected)
+  updateClientProfile: (profileData: any) =>
+    profileData instanceof FormData
+      ? api.put('/api/clients/profile', profileData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      : api.put('/api/clients/profile', profileData),
+
+  // Change password (protected)
+  changeClientPassword: (passwordData: any) => api.put('/api/clients/change-password', passwordData),
+
+  // Get client dashboard (protected)
+  getClientDashboard: () => api.get('/api/clients/dashboard'),
+
   // Get all clients (admin)
   getAllClients: (params?: any) => api.get('/api/clients', { params }),
 
   // Get single client
   getClient: (id: string) => api.get(`/api/clients/${id}`),
-
-  // Register client (public)
-  registerClient: (clientData: any) => api.post('/api/clients/register', clientData),
 
   // Update client
   updateClient: (id: string, clientData: any) => api.put(`/api/clients/${id}`, clientData),
@@ -63,6 +96,9 @@ export const clientAPI = {
 
   // Get client payments
   getClientPayments: (id: string) => api.get(`/api/clients/${id}/payments`),
+
+  // Get client quotations
+  getClientQuotations: (id: string) => api.get(`/api/clients/${id}/quotations`),
 };
 
 // Service API calls

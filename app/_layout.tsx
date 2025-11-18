@@ -4,12 +4,15 @@ import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { View } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { store, persistor } from '@/redux';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Navbar } from '@/components/layout/Navbar';
+import { Footer } from '@/components/layout/Footer';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -26,10 +29,6 @@ const queryClient = new QueryClient({
   },
 });
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -39,11 +38,17 @@ export default function RootLayout() {
         <PersistGate loading={null} persistor={persistor}>
           <AuthProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-              </Stack>
-              <StatusBar style="auto" />
+              <View style={{ flex: 1 }} className="min-h-screen">
+                <Navbar />
+                <Stack>
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen name="(public)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(authenticated)" options={{ headerShown: false }} />
+                  <Stack.Screen name="+not-found" options={{ title: 'Not Found' }} />
+                </Stack>
+                <Footer />
+                <StatusBar style="auto" />
+              </View>
             </ThemeProvider>
           </AuthProvider>
         </PersistGate>
