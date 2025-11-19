@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -11,7 +12,8 @@ import '../global.css';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { store, persistor } from '@/redux';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { Navbar } from '@/components/layout/Navbar';
+import { Header } from '@/components/layout/Header';
+import { Sidebar } from '@/components/layout/Sidebar';
 import { Footer } from '@/components/layout/Footer';
 
 // Create a client
@@ -31,6 +33,15 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleToggleSidebar = () => {
+    setIsSidebarOpen((prev) => !prev);
+  };
+
+  const handleCloseSidebar = () => {
+    setIsSidebarOpen(false);
+  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -39,8 +50,9 @@ export default function RootLayout() {
           <AuthProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
               <View style={{ flex: 1 }}>
-                <Navbar />
+                <Header onToggleSidebar={handleToggleSidebar} isSidebarOpen={isSidebarOpen} />
                 <View style={{ flex: 1 }}>
+                  <Sidebar isVisible={isSidebarOpen} onClose={handleCloseSidebar} />
                   <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="index" options={{ headerShown: false }} />
                     <Stack.Screen name="(public)" options={{ headerShown: false }} />
