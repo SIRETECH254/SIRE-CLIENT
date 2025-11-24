@@ -17,22 +17,13 @@ export default function LandingPage() {
           <ThemedText className="text-lg font-inter text-gray-700 mb-6">
             Innovative technology solutions for your business needs.
           </ThemedText>
-          <View className="flex-row gap-4">
-            <TouchableOpacity
-              onPress={() => router.push('/(public)/login')}
-              className="bg-brand-primary px-6 py-3 rounded-xl">
-              <Text className="text-white font-inter font-semibold text-base">
-                Login
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push('/(public)/register')}
-              className="border border-brand-primary px-6 py-3 rounded-xl">
-              <Text className="text-brand-primary font-inter font-semibold text-base">
-                Register
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            onPress={() => router.push('/(public)/login')}
+            className="bg-brand-primary px-6 py-3 rounded-xl">
+            <Text className="text-white font-inter font-semibold text-base">
+              Login
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Services Preview */}

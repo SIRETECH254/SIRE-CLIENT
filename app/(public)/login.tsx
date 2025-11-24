@@ -37,11 +37,6 @@ export default function LoginScreen() {
     router.push('/(public)/forgot-password');
   }, [router]);
 
-  const handleNavigateToRegister = useCallback(() => {
-    setInlineError(null);
-    router.push('/(public)/register');
-  }, [router]);
-
   const onSubmit = useCallback(async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
@@ -175,17 +170,6 @@ export default function LoginScreen() {
                       Sign in
                     </Text>
                   )}
-                </Pressable>
-              </View>
-
-              <View className="flex-row justify-center space-x-2">
-                <Text className="text-sm text-gray-600">
-                  Don&apos;t have an account?
-                </Text>
-                <Pressable onPress={handleNavigateToRegister}>
-                  <Text className="text-sm font-semibold text-brand-primary">
-                    Create account
-                  </Text>
                 </Pressable>
               </View>
             </View>
