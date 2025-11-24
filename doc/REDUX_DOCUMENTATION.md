@@ -171,6 +171,37 @@ interface AuthState {
 - **`clearError()`** - Clears error message
 - **`setLoading(boolean)`** - Sets loading state
 
+##### Convenience Actions (Matching TEO-ADMIN Pattern)
+
+These actions provide a simplified interface for common auth state updates:
+
+- **`setAuthLoading(boolean)`** - Sets loading state and clears error
+  - Sets `isLoading` to the provided boolean value
+  - Clears `error` state
+  - Useful for starting async operations
+
+- **`setAuthSuccess(user)`** - Sets authenticated state with user
+  - Sets `user` to the provided user object
+  - Sets `isAuthenticated` to `true`
+  - Sets `isLoading` to `false`
+  - Clears `error` state
+  - Used during initialization and profile updates
+
+- **`setAuthFailure(error)`** - Sets error state without clearing auth
+  - Sets `error` to the provided error message (string or null)
+  - Sets `isLoading` to `false`
+  - **Important:** Does NOT clear tokens or user data to preserve offline access
+  - Used when validation fails but we want to keep persisted state
+
+- **`clearAuth()`** - Clears all authentication state
+  - Sets `user` to `null`
+  - Sets `accessToken` to `null`
+  - Sets `refreshToken` to `null`
+  - Sets `isAuthenticated` to `false`
+  - Sets `isLoading` to `false`
+  - Clears `error` state
+  - Used during logout or when no valid auth state exists
+
 #### Usage Example
 
 ```typescript

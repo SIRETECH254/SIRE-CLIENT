@@ -1,167 +1,212 @@
 import React, { useMemo } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useGetProfile } from '@/tanstack/useUsers';
-import { useAuth } from '@/contexts/AuthContext';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-export default function ProfilePage() {
+import { Alert } from '@/components/ui/Alert';
+import { Badge } from '@/components/ui/Badge';
+import { Loading } from '@/components/ui/Loading';
+import { ThemedView } from '@/components/themed-view';
+import { getInitials, formatDate as formatDateUtil, getRoleNames } from '@/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeToggle } from '@/hooks/use-theme-toggle';
+import { useGetProfile } from '@/tanstack/useUsers';
+
+export default function ProfileScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { data, isLoading, error } = useGetProfile();
+  const { colorScheme } = useThemeToggle();
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+    isRefetching,
+  } = useGetProfile();
 
-  const client = data?.data?.user || user;
+  const profile = useMemo(() => {
+    return data?.data?.user ?? user ?? null;
+  }, [data?.data?.user, user]);
 
-  // Generate initials fallback
-  const initials = useMemo(() => {
-    if (!client) return 'U';
-    const first = client.firstName?.[0]?.toUpperCase() || '';
-    const last = client.lastName?.[0]?.toUpperCase() || '';
-    return first + last || 'U';
-  }, [client]);
+  const initials = useMemo(() => getInitials(profile ? { firstName: profile?.firstName, lastName: profile?.lastName, email: profile?.email } : null), [profile]);
+  const roleNames = useMemo(() => getRoleNames(profile), [profile]);
+  const rolesDisplay = roleNames.length > 0 ? roleNames.join(', ') : (profile?.role ?? '—');
 
-  // Format date helper
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }).format(new Date(dateString));
-    } catch {
-      return dateString;
-    }
+  const formatDate = (value?: string) => formatDateUtil(value);
+
+  const errorMessage =
+    (error as any)?.response?.data?.message ??
+    (error as Error)?.message ??
+    null;
+
+  const handleEdit = () => {
+    router.push('/(authenticated)/profile/edit');
   };
 
-  if (isLoading) {
-    return (
-      <ThemedView className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#7b1c1c" />
-      </ThemedView>
-    );
-  }
-
-  if (error) {
-    return (
-      <ThemedView className="flex-1 items-center justify-center px-6">
-        <Text className="form-message-error">
-          {error instanceof Error ? error.message : 'Failed to load profile'}
-        </Text>
-      </ThemedView>
-    );
+  if (isLoading && !profile) {
+    return <Loading fullScreen message="Loading profile..." />;
   }
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <ThemedView className="px-6 py-8">
-        {/* Header Section */}
-        <View className="items-center mb-8">
-          {client?.avatar ? (
-            <Image
-              source={{ uri: client.avatar }}
-              className="w-24 h-24 rounded-full mb-4"
-              resizeMode="cover"
+    <ThemedView className="flex-1 bg-slate-50 dark:bg-gray-950">
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+        }>
+        <View className="px-6 py-8 gap-6">
+          <View className="items-center gap-4">
+            {profile?.avatar ? (
+              <Image
+                source={{ uri: profile.avatar }}
+                resizeMode="cover"
+                className="h-24 w-24 rounded-full border-4 border-white shadow-md"
+              />
+            ) : (
+              <View className="h-24 w-24 items-center justify-center rounded-full bg-brand-tint">
+                <Text className="font-poppins text-3xl font-semibold text-brand-primary">
+                  {initials}
+                </Text>
+              </View>
+            )}
+            <View className="items-center gap-2">
+              <Text className="font-poppins text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                {profile
+                  ? `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim() ||
+                    profile.email
+                  : '—'}
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Badge variant="info" size="sm">
+                  {rolesDisplay}
+                </Badge>
+                <Badge variant={profile?.isActive ? 'success' : 'error'} size="sm">
+                  {profile?.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </View>
+            </View>
+            <Pressable
+              onPress={handleEdit}
+              className="rounded-xl bg-brand-primary px-6 py-3"
+              accessibilityRole="button"
+              accessibilityLabel="Edit profile">
+              <Text className="font-inter text-base font-semibold text-white">
+                Edit Profile
+              </Text>
+            </Pressable>
+          </View>
+
+          {errorMessage ? (
+            <Alert
+              variant="error"
+              message={errorMessage}
+              className="w-full"
             />
-          ) : (
-            <View className="w-24 h-24 rounded-full bg-brand-primary items-center justify-center mb-4">
-              <Text className="text-white text-2xl font-poppins font-bold">
-                {initials}
-              </Text>
-            </View>
-          )}
-          <ThemedText type="title" className="text-2xl font-poppins font-bold text-black mb-1">
-            {client?.firstName} {client?.lastName}
-          </ThemedText>
-          <ThemedText className="text-base font-inter text-gray-600 mb-1">
-            {client?.email}
-          </ThemedText>
-          {client?.phone && (
-            <ThemedText className="text-base font-inter text-gray-600">
-              {client.phone}
-            </ThemedText>
-          )}
-        </View>
+          ) : null}
 
-        {/* Contact Information Card */}
-        <View className="bg-gray-50 rounded-xl p-6 mb-6">
-          <ThemedText type="subtitle" className="text-lg font-poppins font-semibold text-black mb-4">
-            Contact Information
-          </ThemedText>
-          <View className="space-y-3">
-            <View>
-              <Text className="form-label">Email</Text>
-              <Text className="text-base font-inter text-gray-900 mt-1">
-                {client?.email || 'N/A'}
+          <View className="gap-6">
+            <View className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <Text className="font-poppins text-lg font-semibold text-gray-900 dark:text-gray-50">
+                Contact Information
               </Text>
-            </View>
-            {client?.phone && (
-              <View>
-                <Text className="form-label">Phone</Text>
-                <Text className="text-base font-inter text-gray-900 mt-1">
-                  {client.phone}
-                </Text>
+              <View className="mt-4 gap-3">
+                <ProfileRow
+                  label="Email"
+                  icon="mail-outline"
+                  value={profile?.email ?? '—'}
+                  iconColor={colorScheme === 'dark' ? '#e5e7eb' : '#6b7280'}
+                  valueClassName="max-w-[60%]"
+                />
+                <ProfileRow
+                  label="Phone"
+                  icon="call"
+                  value={profile?.phone ?? 'Not provided'}
+                  iconColor={colorScheme === 'dark' ? '#e5e7eb' : '#6b7280'}
+                  valueClassName="max-w-[60%]"
+                />
               </View>
-            )}
+            </View>
+
+            <View className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <Text className="font-poppins text-lg font-semibold text-gray-900 dark:text-gray-50">
+                Account Details
+              </Text>
+              <View className="mt-4 gap-3">
+                <ProfileRow
+                  label="Role"
+                  icon="workspace-premium"
+                  iconColor={colorScheme === 'dark' ? '#e5e7eb' : '#6b7280'}
+                  badgeContent={
+                    <Badge variant="info" size="sm">
+                      {rolesDisplay}
+                    </Badge>
+                  }
+                />
+                <ProfileRow
+                  label="Status"
+                  icon="shield"
+                  iconColor={colorScheme === 'dark' ? '#e5e7eb' : '#6b7280'}
+                  badgeContent={
+                    <Badge variant={profile?.isActive ? 'success' : 'error'} size="sm">
+                      {profile?.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  }
+                />
+                <ProfileRow
+                  label="Email Verified"
+                  icon="verified"
+                  iconColor={colorScheme === 'dark' ? '#e5e7eb' : '#6b7280'}
+                  badgeContent={
+                    <Badge variant={profile?.emailVerified ? 'success' : 'warning'} size="sm">
+                      {profile?.emailVerified ? 'Verified' : 'Pending'}
+                    </Badge>
+                  }
+                />
+                <ProfileRow
+                  label="Created"
+                  icon="event-note"
+                  iconColor={colorScheme === 'dark' ? '#e5e7eb' : '#6b7280'}
+                  value={formatDate(profile?.createdAt)}
+                />
+                <ProfileRow
+                  label="Updated"
+                  icon="update"
+                  iconColor={colorScheme === 'dark' ? '#e5e7eb' : '#6b7280'}
+                  value={formatDate(profile?.updatedAt)}
+                />
+              </View>
+            </View>
           </View>
         </View>
+      </ScrollView>
+    </ThemedView>
+  );
+}
 
-        {/* Account Information Card */}
-        <View className="bg-gray-50 rounded-xl p-6 mb-6">
-          <ThemedText type="subtitle" className="text-lg font-poppins font-semibold text-black mb-4">
-            Account Information
-          </ThemedText>
-          <View className="space-y-3">
-            <View>
-              <Text className="form-label">Email Verified</Text>
-              <View className="flex-row items-center mt-1">
-                <View className={`w-2 h-2 rounded-full mr-2 ${client?.emailVerified ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                <Text className="text-base font-inter text-gray-900">
-                  {client?.emailVerified ? 'Verified' : 'Not Verified'}
-                </Text>
-              </View>
-            </View>
-            {client?.createdAt && (
-              <View>
-                <Text className="form-label">Member Since</Text>
-                <Text className="text-base font-inter text-gray-900 mt-1">
-                  {formatDate(client.createdAt)}
-                </Text>
-              </View>
-            )}
-            {client?.updatedAt && (
-              <View>
-                <Text className="form-label">Last Updated</Text>
-                <Text className="text-base font-inter text-gray-900 mt-1">
-                  {formatDate(client.updatedAt)}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
+type ProfileRowProps = {
+  label: string;
+  value?: string;
+  icon: MaterialIcons['props']['name'];
+  iconColor: string;
+  badgeContent?: React.ReactNode;
+  valueClassName?: string;
+};
 
-        {/* Action Buttons */}
-        <View className="space-y-4">
-          <Pressable
-            onPress={() => router.push('/(authenticated)/profile/edit')}
-            className="btn btn-primary">
-            <Text className="btn-text btn-text-primary">Edit Profile</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/(authenticated)/profile/change-password')}
-            className="btn btn-secondary">
-            <Text className="btn-text btn-text-secondary">Change Password</Text>
-          </Pressable>
-        </View>
-      </ThemedView>
-    </ScrollView>
+function ProfileRow({ label, value, icon, iconColor, badgeContent, valueClassName }: ProfileRowProps) {
+  return (
+    <View className="flex-row items-center justify-between gap-3">
+      <View className="flex-row items-center gap-2">
+        <MaterialIcons name={icon} size={18} color={iconColor} />
+        <Text className="font-inter text-sm text-gray-500 dark:text-gray-400">{label}</Text>
+      </View>
+      {badgeContent ? (
+        badgeContent
+      ) : (
+        <Text
+          className={`text-right font-inter text-base text-gray-900 dark:text-gray-100 ${valueClassName ?? ''}`}>
+          {value ?? '—'}
+        </Text>
+      )}
+    </View>
   );
 }

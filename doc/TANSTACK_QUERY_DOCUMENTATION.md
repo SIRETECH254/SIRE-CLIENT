@@ -119,7 +119,6 @@ All TanStack Query hooks are organized in the `tanstack/` folder:
 ```
 tanstack/
 ├── index.ts              # Exports all hooks
-├── useClients.ts         # Client-related hooks
 ├── useServices.ts         # Service-related hooks
 ├── useQuotations.ts       # Quotation-related hooks
 ├── useInvoices.ts         # Invoice-related hooks
@@ -129,16 +128,16 @@ tanstack/
 ├── useNotifications.ts   # Notification-related hooks
 ├── useContact.ts          # Contact-related hooks
 ├── useDashboard.ts        # Dashboard-related hooks
-└── useUsers.ts            # User-related hooks
+└── useUsers.ts            # User-related hooks (profile, password, admin)
 ```
 
 ### Hook Naming Convention
 
 - **Query Hooks**: `useGet[Resource]` or `useGet[Resource]ById`
-  - Example: `useGetClients`, `useGetClient`
+  - Example: `useGetProfile`, `useGetUserById`
 
 - **Mutation Hooks**: `use[Action][Resource]`
-  - Example: `useCreateClient`, `useUpdateClient`, `useDeleteClient`
+  - Example: `useUpdateProfile`, `useChangePassword`, `useCreateUser`
 
 ---
 
@@ -150,13 +149,13 @@ Query hooks are used for GET operations (fetching data).
 
 ```typescript
 import { useQuery } from '@tanstack/react-query';
-import { clientAPI } from '@/api';
+import { userAPI } from '@/api';
 
-export const useGetClients = (params = {}) => {
+export const useGetProfile = () => {
   return useQuery({
-    queryKey: ['clients', params],
+    queryKey: ['user', 'profile'],
     queryFn: async () => {
-      const response = await clientAPI.getAllClients(params);
+      const response = await userAPI.getProfile();
       return response.data;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -226,24 +225,24 @@ Mutation hooks are used for POST, PUT, PATCH, and DELETE operations.
 
 ```typescript
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { clientAPI } from '@/api';
+import { userAPI } from '@/api';
 
-export const useCreateClient = () => {
+export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (clientData: any) => {
-      const response = await clientAPI.createClient(clientData);
+    mutationFn: async (profileData: any) => {
+      const response = await userAPI.updateProfile(profileData);
       return response.data;
     },
     onSuccess: (data) => {
-      // Invalidate and refetch clients list
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      console.log('Client created successfully');
+      // Invalidate and refetch profile
+      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      console.log('Profile updated successfully');
     },
     onError: (error: any) => {
-      console.error('Create client error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create client';
+      console.error('Update profile error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update profile';
       console.error('Error:', errorMessage);
     },
   });
@@ -458,38 +457,39 @@ Errors are logged in the mutation's `onError` callback. For user-facing errors, 
 
 ## Usage Examples
 
-### Example 1: Fetching Data
+### Example 1: Fetching Profile Data
 
 ```typescript
-import { useGetClients } from '@/tanstack';
+import { useGetProfile } from '@/tanstack/useUsers';
 
-function ClientsList() {
-  const { data, isLoading, isError, error } = useGetClients({ page: 1, limit: 10 });
+function ProfileScreen() {
+  const { data, isLoading, isError, error } = useGetProfile();
 
   if (isLoading) return <Text>Loading...</Text>;
   if (isError) return <Text>Error: {error?.message}</Text>;
 
+  const user = data?.data?.user;
+
   return (
     <View>
-      {data?.data?.clients?.map((client) => (
-        <Text key={client.id}>{client.name}</Text>
-      ))}
+      <Text>{user?.firstName} {user?.lastName}</Text>
+      <Text>{user?.email}</Text>
     </View>
   );
 }
 ```
 
-### Example 2: Creating Data
+### Example 2: Updating Profile
 
 ```typescript
-import { useCreateClient } from '@/tanstack';
+import { useUpdateProfile } from '@/tanstack/useUsers';
 
-function CreateClientForm() {
-  const createClient = useCreateClient();
+function EditProfileForm() {
+  const updateProfile = useUpdateProfile();
 
   const handleSubmit = async (formData: any) => {
     try {
-      await createClient.mutateAsync(formData);
+      await updateProfile.mutateAsync(formData);
       // Navigate or show success message
     } catch (error) {
       // Error is already handled in the hook
@@ -500,25 +500,28 @@ function CreateClientForm() {
     <View>
       <Button
         onPress={handleSubmit}
-        disabled={createClient.isLoading}
-        title={createClient.isLoading ? 'Creating...' : 'Create Client'}
+        disabled={updateProfile.isPending}
+        title={updateProfile.isPending ? 'Saving...' : 'Save Changes'}
       />
     </View>
   );
 }
 ```
 
-### Example 3: Updating Data
+### Example 3: Changing Password
 
 ```typescript
-import { useUpdateClient } from '@/tanstack';
+import { useChangePassword } from '@/tanstack/useUsers';
 
-function EditClient({ clientId }: { clientId: string }) {
-  const updateClient = useUpdateClient();
+function ChangePasswordForm() {
+  const changePassword = useChangePassword();
 
-  const handleUpdate = async (clientData: any) => {
+  const handleChangePassword = async (passwordData: any) => {
     try {
-      await updateClient.mutateAsync({ clientId, clientData });
+      await changePassword.mutateAsync({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+      });
       // Show success message
     } catch (error) {
       // Error handling
@@ -528,7 +531,7 @@ function EditClient({ clientId }: { clientId: string }) {
   return (
     <View>
       {/* Form */}
-      <Button onPress={handleUpdate} title="Update" />
+      <Button onPress={handleChangePassword} title="Change Password" />
     </View>
   );
 }
@@ -537,15 +540,16 @@ function EditClient({ clientId }: { clientId: string }) {
 ### Example 4: Conditional Query
 
 ```typescript
-import { useGetClient } from '@/tanstack';
+import { useGetUserById } from '@/tanstack/useUsers';
 
-function ClientDetails({ clientId }: { clientId?: string }) {
-  const { data, isLoading } = useGetClient(clientId || '');
+function UserDetails({ userId }: { userId?: string }) {
+  const { data, isLoading } = useGetUserById(userId || '');
 
-  if (!clientId) return <Text>No client selected</Text>;
+  if (!userId) return <Text>No user selected</Text>;
   if (isLoading) return <Text>Loading...</Text>;
 
-  return <Text>{data?.data?.client?.name}</Text>;
+  const user = data?.data?.user;
+  return <Text>{user?.firstName} {user?.lastName}</Text>;
 }
 ```
 
@@ -576,13 +580,13 @@ function ClientDashboard({ clientId }: { clientId: string }) {
 TanStack Query hooks use the existing API layer (`api/index.ts`):
 
 ```typescript
-import { clientAPI } from '@/api';
+import { userAPI } from '@/api';
 
-export const useGetClients = (params = {}) => {
+export const useGetProfile = () => {
   return useQuery({
-    queryKey: ['clients', params],
+    queryKey: ['user', 'profile'],
     queryFn: async () => {
-      const response = await clientAPI.getAllClients(params);
+      const response = await userAPI.getProfile();
       return response.data;
     },
   });

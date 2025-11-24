@@ -71,6 +71,7 @@ interface AuthState {
 
 The AuthContext uses the following Redux actions from `redux/slices/authSlice`:
 
+#### Standard Actions
 - `loginStart()` - Sets loading state
 - `loginSuccess({ user, accessToken, refreshToken })` - Sets authenticated state
 - `loginFailure(error)` - Sets error state
@@ -82,6 +83,12 @@ The AuthContext uses the following Redux actions from `redux/slices/authSlice`:
 - `setTokens({ accessToken, refreshToken? })` - Updates tokens
 - `clearError()` - Clears error state
 - `setLoading(boolean)` - Sets loading state
+
+#### Convenience Actions (Matching TEO-ADMIN Pattern)
+- `setAuthLoading(boolean)` - Sets loading state and clears error
+- `setAuthSuccess(user)` - Sets user, authenticated state, clears loading and error
+- `setAuthFailure(error)` - Sets error state and clears loading (preserves tokens)
+- `clearAuth()` - Clears all auth state including tokens
 
 ### State Access
 
@@ -115,16 +122,36 @@ The following keys are used in AsyncStorage:
 
 ### Rehydration Strategy
 
+The AuthContext uses a two-phase initialization strategy:
+
 ```typescript
-// 1. Rehydrate immediately from AsyncStorage
+// Phase 1: Immediate rehydration from AsyncStorage
 if (token && storedUser) {
-  // Restore state from storage
-  dispatch(loginSuccess({ user, accessToken, refreshToken }));
+  // Restore user state immediately (tokens already in AsyncStorage)
+  dispatch(setAuthSuccess(storedUser));
+  dispatch(setTokens({ accessToken: token }));
 }
 
-// 2. Background validation (non-blocking)
-// Refresh user profile without clearing tokens on failure
+// Phase 2: Background validation (non-blocking)
+// Refresh user profile in background without clearing tokens on failure
+// This preserves offline access even if token validation fails
+const refreshUserInBackground = async () => {
+  try {
+    const response = await userAPI.getProfile();
+    const userData = response.data.data.user;
+    await AsyncStorage.setItem('user', JSON.stringify(userData));
+    dispatch(setAuthSuccess(userData));
+  } catch (error) {
+    // Intentionally do NOT clear tokens to preserve persisted state
+    console.log('Background token validation failed');
+  }
+};
 ```
+
+**Key Points:**
+- Immediate rehydration ensures app state is available instantly
+- Background refresh keeps data fresh without blocking UI
+- Token preservation strategy: tokens are NOT cleared on validation failure to allow offline access
 
 ---
 
@@ -249,19 +276,27 @@ Promise<{ success: boolean; error?: string }>
 
 #### `updateProfile(profileData)`
 
-Updates user profile information.
+Updates user profile information. Uses `userAPI.updateProfile()` instead of `authAPI.getMe()`.
 
 **Parameters:**
 - `profileData: { firstName?: string; lastName?: string; phone?: string; avatar?: string }`
+  - Can be a FormData object if avatar is included
+  - Can include `avatar: null` to remove avatar
 
 **Returns:**
 ```typescript
 Promise<{ success: boolean; user?: User; error?: string }>
 ```
 
+**Implementation Details:**
+- Calls `userAPI.updateProfile(profileData)`
+- Updates AsyncStorage with new user data
+- Dispatches `updateUser()` to Redux
+- Dispatches `setAuthSuccess()` to update auth state
+
 #### `changePassword(passwordData)`
 
-Changes user password.
+Changes user password. Uses `userAPI.changePassword()`.
 
 **Parameters:**
 - `passwordData: { currentPassword: string; newPassword: string }`
@@ -270,6 +305,10 @@ Changes user password.
 ```typescript
 Promise<{ success: boolean; error?: string }>
 ```
+
+**Implementation Details:**
+- Calls `userAPI.changePassword(passwordData)`
+- Does not update user state (password is not stored in state)
 
 #### `logout()`
 

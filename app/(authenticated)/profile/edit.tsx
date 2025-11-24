@@ -13,289 +13,368 @@ import {
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { useDispatch } from 'react-redux';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-import { useGetProfile, useUpdateProfile } from '@/tanstack/useUsers';
-import { useAuth } from '@/contexts/AuthContext';
-import { updateUser } from '@/redux/slices/authSlice';
+import { Alert } from '@/components/ui/Alert';
+import { Loading } from '@/components/ui/Loading';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuth } from '@/contexts/AuthContext';
+import { updateUser } from '@/redux/slices/authSlice';
+import { useGetProfile, useUpdateProfile } from '@/tanstack/useUsers';
+import { getInitials } from '@/utils';
 
-export default function EditProfilePage() {
+type InlineStatus =
+  | {
+      type: 'success' | 'error';
+      text: string;
+    }
+  | null;
+
+type AvatarAsset = {
+  uri: string;
+  name: string;
+  type: string;
+};
+
+export default function EditProfileScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
   const { user } = useAuth();
-  const { data } = useGetProfile();
-  const updateProfile = useUpdateProfile();
+  const { data, isLoading } = useGetProfile();
+  const { mutateAsync, isPending } = useUpdateProfile();
 
-  const client = data?.data?.user || user;
+  const profile = useMemo(() => {
+    return data?.data?.user ?? user ?? null;
+  }, [data?.data?.user, user]);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [inlineStatus, setInlineStatus] = useState<InlineStatus>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<{ uri: string; name: string; type: string } | null>(null);
+  const [avatarFile, setAvatarFile] = useState<AvatarAsset | null>(null);
   const [avatarRemoved, setAvatarRemoved] = useState(false);
-  const [inlineStatus, setInlineStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  // Initialize form fields from profile data
   useEffect(() => {
-    if (client) {
-      setFirstName(client.firstName || '');
-      setLastName(client.lastName || '');
-      setPhone(client.phone || '');
-      setAvatarUri(client.avatar || null);
+    if (profile) {
+      setFirstName(profile.firstName ?? '');
+      setLastName(profile.lastName ?? '');
+      setPhone(profile.phone ?? '');
+      setAvatarUri(profile.avatar ?? null);
+      setAvatarFile(null);
+      setAvatarRemoved(false);
     }
-  }, [client]);
+  }, [profile]);
 
-  // Generate initials fallback
+  const isBusy = isPending;
+
   const initials = useMemo(() => {
-    const first = firstName?.[0]?.toUpperCase() || '';
-    const last = lastName?.[0]?.toUpperCase() || '';
-    return first + last || 'U';
-  }, [firstName, lastName]);
+    if (!profile) return '?';
+    const parts = [profile.firstName, profile.lastName].filter(Boolean);
+    if (parts.length === 0) {
+      return profile.email?.[0]?.toUpperCase() ?? '?';
+    }
+    return parts
+      .map((value: string) => value.charAt(0).toUpperCase())
+      .join('');
+  }, [profile]);
 
-  const currentAvatar = avatarRemoved ? null : (avatarUri || client?.avatar);
+  const resetInlineStatus = useCallback(() => {
+    if (inlineStatus) {
+      setInlineStatus(null);
+    }
+  }, [inlineStatus]);
 
-  const handlePickImage = useCallback(async () => {
+  const handleChangeAvatar = useCallback(async () => {
     try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setInlineStatus({
+          type: 'error',
+          text: 'Photo library access is required to change your avatar.',
+        });
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.85,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        setAvatarUri(asset.uri);
-        setAvatarFile({
-          uri: asset.uri,
-          name: asset.fileName || 'avatar.jpg',
-          type: 'image/jpeg',
-        });
-        setAvatarRemoved(false);
-        setInlineStatus(null);
+      if (result.canceled) {
+        return;
       }
-    } catch (error) {
-      console.error('Image picker error:', error);
-      setInlineStatus({ type: 'error', message: 'Failed to pick image' });
+
+      const asset = result.assets?.[0];
+      if (!asset) {
+        return;
+      }
+
+      const assetName = asset.fileName ?? `avatar-${Date.now()}.jpg`;
+      const assetType = asset.mimeType ?? 'image/jpeg';
+
+      setAvatarUri(asset.uri);
+      setAvatarFile({
+        uri: asset.uri,
+        name: assetName,
+        type: assetType,
+      });
+      setAvatarRemoved(false);
+      resetInlineStatus();
+    } catch (err) {
+      setInlineStatus({
+        type: 'error',
+        text: 'Unable to open your photo library right now. Please try again.',
+      });
     }
-  }, []);
+  }, [resetInlineStatus]);
 
   const handleRemoveAvatar = useCallback(() => {
     setAvatarUri(null);
     setAvatarFile(null);
     setAvatarRemoved(true);
-    setInlineStatus(null);
-  }, []);
+    resetInlineStatus();
+  }, [resetInlineStatus]);
 
-  const handleSubmit = useCallback(async () => {
-    // Validation
-    if (!firstName.trim() || !lastName.trim()) {
-      setInlineStatus({ type: 'error', message: 'First name and last name are required' });
+  const currentAvatar = useMemo(() => {
+    if (avatarRemoved) {
+      return null;
+    }
+    if (avatarUri) {
+      return avatarUri;
+    }
+    return profile?.avatar ?? null;
+  }, [avatarRemoved, avatarUri, profile?.avatar]);
+
+  const handleSave = useCallback(async () => {
+    const trimmedFirst = firstName.trim();
+    const trimmedLast = lastName.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedFirst || !trimmedLast) {
+      setInlineStatus({
+        type: 'error',
+        text: 'First name and last name are required.',
+      });
       return;
     }
 
     setInlineStatus(null);
 
     try {
-      let payload: any;
+      let payload: any = {
+        firstName: trimmedFirst,
+        lastName: trimmedLast,
+        phone: trimmedPhone || undefined,
+      };
 
       if (avatarFile) {
-        // Create FormData for file upload
         const formData = new FormData();
-        formData.append('firstName', firstName.trim());
-        formData.append('lastName', lastName.trim());
-        if (phone.trim()) {
-          formData.append('phone', phone.trim());
+        formData.append('firstName', trimmedFirst);
+        formData.append('lastName', trimmedLast);
+        if (trimmedPhone) {
+          formData.append('phone', trimmedPhone);
         }
-
-        // Handle file upload differently for web vs native
         if (Platform.OS === 'web') {
-          // Web: fetch the blob first
-          const response = await fetch(avatarFile.uri);
-          const blob = await response.blob();
+          const fileResponse = await fetch(avatarFile.uri);
+          const blob = await fileResponse.blob();
           formData.append('avatar', blob, avatarFile.name);
         } else {
-          // Native: use the file directly
           formData.append('avatar', {
             uri: avatarFile.uri,
             name: avatarFile.name,
             type: avatarFile.type,
           } as any);
         }
-
         payload = formData;
       } else if (avatarRemoved) {
-        // Send JSON with avatar: null
         payload = {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          phone: phone.trim() || undefined,
+          ...payload,
           avatar: null,
         };
-      } else {
-        // No avatar change, send JSON
-        payload = {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          phone: phone.trim() || undefined,
-        };
       }
 
-      const result = await updateProfile.mutateAsync(payload);
+      const result = await mutateAsync(payload);
 
-      if (result?.success && result?.data?.user) {
-        // Update Redux store
-        dispatch(updateUser(result.data.user));
-
-        setInlineStatus({ type: 'success', message: 'Profile updated successfully' });
-
-        // Navigate back after a short delay
-        setTimeout(() => {
-          router.back();
-        }, 1500);
-      } else {
-        setInlineStatus({ type: 'error', message: 'Failed to update profile' });
+      const updatedUser = result?.data?.user ?? result?.user;
+      if (updatedUser) {
+        dispatch(updateUser(updatedUser));
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Failed to update profile';
-      setInlineStatus({ type: 'error', message: errorMessage });
+
+      setInlineStatus({
+        type: 'success',
+        text: 'Profile updated successfully.',
+      });
+
+      setTimeout(() => {
+        router.back();
+      }, 600);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Unable to update profile right now.';
+      setInlineStatus({ type: 'error', text: message });
     }
-  }, [firstName, lastName, phone, avatarFile, avatarRemoved, updateProfile, dispatch, router]);
+  }, [
+    avatarFile,
+    avatarRemoved,
+    dispatch,
+    firstName,
+    lastName,
+    mutateAsync,
+    phone,
+    router,
+  ]);
 
-  const isBusy = updateProfile.isPending;
+  const handleCancel = () => {
+    router.back();
+  };
+
+  if (isLoading && !profile) {
+    return <Loading fullScreen message="Loading profile..." />;
+  }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white">
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled">
-        <ThemedView className="px-6 py-8">
-          <ThemedText type="title" className="text-2xl font-poppins font-bold text-black mb-6">
-            Edit Profile
-          </ThemedText>
+    <ThemedView className="flex-1 bg-slate-50 dark:bg-gray-950">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 32 }}
+          keyboardShouldPersistTaps="handled">
+          <View className="flex-1 px-6 py-8">
+            <ThemedText type="title" style={{ textAlign: 'center' }}>
+              Edit Profile
+            </ThemedText>
 
-          {/* Avatar Picker */}
-          <View className="items-center mb-6">
-            {currentAvatar ? (
-              <Image
-                source={{ uri: currentAvatar }}
-                className="w-24 h-24 rounded-full mb-4"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="w-24 h-24 rounded-full bg-brand-primary items-center justify-center mb-4">
-                <Text className="text-white text-2xl font-poppins font-bold">
-                  {initials}
-                </Text>
-              </View>
-            )}
-            <Pressable
-              onPress={handlePickImage}
-              disabled={isBusy}
-              className="btn btn-secondary mb-2">
-              <Text className="btn-text btn-text-secondary">Change Avatar</Text>
-            </Pressable>
-            {currentAvatar && (
+            <View className="mt-8 items-center gap-3">
               <Pressable
-                onPress={handleRemoveAvatar}
-                disabled={isBusy}
-                className="btn btn-ghost">
-                <Text className="btn-text text-red-600">Remove Avatar</Text>
+                onPress={handleChangeAvatar}
+                className="items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel="Change avatar">
+                {currentAvatar ? (
+                  <Image
+                    source={{ uri: currentAvatar }}
+                    resizeMode="cover"
+                    className="h-28 w-28 rounded-full border-4 border-white shadow-md"
+                  />
+                ) : (
+                  <View className="h-28 w-28 items-center justify-center rounded-full bg-brand-tint">
+                    <Text className="font-poppins text-3xl font-semibold text-brand-primary">
+                      {initials}
+                    </Text>
+                  </View>
+                )}
+                <Text className="mt-2 font-inter text-sm text-brand-primary">
+                  Tap to change avatar
+                </Text>
               </Pressable>
-            )}
-          </View>
-
-          {/* Form Fields */}
-          <View className="space-y-4 mb-6">
-            <View>
-              <Text className="form-label">First Name *</Text>
-              <TextInput
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="Enter first name"
-                className="form-input"
-                editable={!isBusy}
-              />
-            </View>
-
-            <View>
-              <Text className="form-label">Last Name *</Text>
-              <TextInput
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Enter last name"
-                className="form-input"
-                editable={!isBusy}
-              />
-            </View>
-
-            <View>
-              <Text className="form-label">Phone</Text>
-              <TextInput
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Enter phone number"
-                keyboardType="phone-pad"
-                className="form-input"
-                editable={!isBusy}
-              />
-            </View>
-
-            <View>
-              <Text className="form-label">Email</Text>
-              <TextInput
-                value={client?.email || ''}
-                placeholder="Email"
-                className="form-input form-input-disabled"
-                editable={false}
-              />
-              <Text className="text-xs font-inter text-gray-500 mt-1">
-                Email cannot be changed
-              </Text>
-            </View>
-          </View>
-
-          {/* Status Messages */}
-          {inlineStatus && (
-            <View className="mb-4">
-              <Text
-                className={
-                  inlineStatus.type === 'success'
-                    ? 'form-message-success'
-                    : 'form-message-error'
-                }>
-                {inlineStatus.message}
-              </Text>
-            </View>
-          )}
-
-          {/* Action Buttons */}
-          <View className="flex-row gap-4">
-            <Pressable
-              onPress={() => router.back()}
-              disabled={isBusy}
-              className="btn btn-secondary flex-1">
-              <Text className="btn-text btn-text-secondary">Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={handleSubmit}
-              disabled={isBusy}
-              className="btn btn-primary flex-1">
-              {isBusy ? (
-                <ActivityIndicator color="#ffffff" />
-              ) : (
-                <Text className="btn-text btn-text-primary">Save Changes</Text>
+              {(currentAvatar || avatarRemoved) && (
+                <Pressable
+                  onPress={handleRemoveAvatar}
+                  className="rounded-xl border border-transparent px-4 py-2"
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove avatar">
+                  <Text className="font-inter text-sm font-semibold text-brand-accent">
+                    Remove avatar
+                  </Text>
+                </Pressable>
               )}
-            </Pressable>
+            </View>
+
+            <View className="mt-10 gap-5">
+              <View className="gap-2">
+                <Text className="form-label">First name</Text>
+                <TextInput
+                  value={firstName}
+                  onChangeText={(value) => {
+                    setFirstName(value);
+                    resetInlineStatus();
+                  }}
+                  autoCapitalize="words"
+                  placeholder="Jane"
+                  className="form-input"
+                />
+              </View>
+
+              <View className="gap-2">
+                <Text className="form-label">Last name</Text>
+                <TextInput
+                  value={lastName}
+                  onChangeText={(value) => {
+                    setLastName(value);
+                    resetInlineStatus();
+                  }}
+                  autoCapitalize="words"
+                  placeholder="Doe"
+                  className="form-input"
+                />
+              </View>
+
+              <View className="gap-2">
+                <Text className="form-label">Email</Text>
+                <TextInput
+                  value={profile?.email ?? ''}
+                  editable={false}
+                  selectTextOnFocus={false}
+                  className="form-input-disabled"
+                />
+              </View>
+
+              <View className="gap-2">
+                <Text className="form-label">Phone (optional)</Text>
+                <TextInput
+                  value={phone}
+                  onChangeText={(value) => {
+                    setPhone(value);
+                    resetInlineStatus();
+                  }}
+                  keyboardType="phone-pad"
+                  placeholder="e.g. +254712345678"
+                  className="form-input"
+                />
+              </View>
+            </View>
+
+            <View className="mt-6 gap-3">
+              {inlineStatus ? (
+                <Alert
+                  variant={inlineStatus.type}
+                  message={inlineStatus.text}
+                  className="w-full"
+                />
+              ) : null}
+
+              <View className="flex-row items-center justify-end gap-3">
+                <Pressable
+                  onPress={handleCancel}
+                  disabled={isBusy}
+                  className="btn btn-secondary">
+                  <Text className="btn-text btn-text-secondary">
+                    Cancel
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={handleSave}
+                  disabled={isBusy}
+                  className="btn btn-primary min-w-[140px]">
+                  {isBusy ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text className="btn-text btn-text-primary">
+                      Save changes
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
           </View>
-        </ThemedView>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
-
