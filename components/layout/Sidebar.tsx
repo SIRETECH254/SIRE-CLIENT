@@ -82,6 +82,32 @@ export function Sidebar({ isVisible, onClose }: SidebarProps) {
             </Pressable>
           );
         })}
+
+        {/* Profile Link - Only visible when authenticated, shown as last navigation item */}
+        {isAuthenticated && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => handleNavigate('/(authenticated)/profile')}
+            className={`mb-2 flex-row items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+              pathname?.includes('/profile')
+                ? 'bg-brand-tint text-brand-primary dark:bg-gray-800/80'
+                : 'bg-transparent'
+            }`}>
+            <MaterialIcons
+              name="manage-accounts"
+              size={20}
+              color={pathname?.includes('/profile') ? '#7b1c1c' : colorScheme === 'dark' ? '#e5e7eb' : '#374151'}
+            />
+            <Text
+              className={`font-inter text-sm ${
+                pathname?.includes('/profile')
+                  ? 'text-brand-primary font-semibold'
+                  : 'text-gray-700 dark:text-gray-200'
+              }`}>
+              Profile
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
 
       {isAuthenticated && (

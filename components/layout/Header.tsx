@@ -104,7 +104,7 @@ export function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) {
    */
   const handleProfile = () => {
     setIsMenuOpen(false);
-    router.push('/(authenticated)/profile/index');
+    router.push('/(authenticated)/profile');
   };
 
   /**
