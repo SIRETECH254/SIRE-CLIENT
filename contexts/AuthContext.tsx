@@ -20,7 +20,7 @@ import {
   clearAuth,
 } from '../redux/slices/authSlice';
 import { RootState } from '../redux/types';
-import { clientAPI } from '../api';
+import { authAPI, userAPI } from '../api';
 import { User } from '../redux/types';
 
 // Types
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const token = await AsyncStorage.getItem('clientAccessToken');
+        const token = await AsyncStorage.getItem('accessToken');
         const storedUserString = await AsyncStorage.getItem('user');
 
         // 1) Rehydrate immediately from AsyncStorage so state survives reloads
@@ -129,8 +129,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const refreshUserInBackground = async () => {
           if (!token) return;
           try {
-            const response = await clientAPI.getClientProfile();
-            const userData = response.data.data.client;
+            const response = await userAPI.getProfile();
+            const userData = response.data.data.user;
             await AsyncStorage.setItem('user', JSON.stringify(userData));
             dispatch(setAuthSuccess(userData));
           } catch (error: any) {
@@ -155,12 +155,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     dispatch(setAuthLoading(true));
 
     try {
-      const response = await clientAPI.loginClient(credentials);
-      const { client: userData, accessToken, refreshToken } = response.data.data;
+      const response = await authAPI.login(credentials);
+      const { user: userData, accessToken, refreshToken } = response.data.data;
 
       // Store tokens and user data in AsyncStorage
-      await AsyncStorage.setItem('clientAccessToken', accessToken);
-      await AsyncStorage.setItem('clientRefreshToken', refreshToken);
+      await AsyncStorage.setItem('accessToken', accessToken);
+      await AsyncStorage.setItem('refreshToken', refreshToken);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
 
       // Update Redux state
@@ -190,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     dispatch(registerStart());
 
     try {
-      const response = await clientAPI.registerClient(userData);
+      const response = await authAPI.register(userData);
       dispatch(registerSuccess());
       console.log('Registration successful! Please check your email for OTP verification.');
       return { success: true, data: response.data.data };
@@ -208,12 +208,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     dispatch(loginStart());
 
     try {
-      const response = await clientAPI.verifyClientOTP(otpData);
-      const { client: userData, accessToken, refreshToken } = response.data.data;
+      const response = await authAPI.verifyOTP(otpData);
+      const { user: userData, accessToken, refreshToken } = response.data.data;
 
       // Store tokens and user data
-      await AsyncStorage.setItem('clientAccessToken', accessToken);
-      await AsyncStorage.setItem('clientRefreshToken', refreshToken);
+      await AsyncStorage.setItem('accessToken', accessToken);
+      await AsyncStorage.setItem('refreshToken', refreshToken);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
 
       // Update Redux state
@@ -239,7 +239,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Resend OTP function
   const resendOTP = async (emailData: { email: string }): Promise<AuthResult> => {
     try {
-      await clientAPI.resendClientOTP(emailData);
+      await authAPI.resendOTP(emailData);
       console.log('OTP has been resent to your email!');
       return { success: true };
     } catch (error: any) {
@@ -252,7 +252,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Forgot password function
   const forgotPassword = async (email: string): Promise<AuthResult> => {
     try {
-      await clientAPI.forgotClientPassword(email);
+      await authAPI.forgotPassword(email);
       console.log('Password reset instructions sent to your email!');
       return { success: true };
     } catch (error: any) {
@@ -268,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     newPassword: string
   ): Promise<AuthResult> => {
     try {
-      await clientAPI.resetClientPassword(token, newPassword);
+      await authAPI.resetPassword(token, newPassword);
       console.log('Password reset successfully!');
       return { success: true };
     } catch (error: any) {
@@ -281,8 +281,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Update profile function
   const updateProfile = async (profileData: ProfileData): Promise<AuthResult> => {
     try {
-      const response = await clientAPI.updateClientProfile(profileData);
-      const updatedUser = response.data.data.client;
+      const response = await userAPI.updateProfile(profileData);
+      const updatedUser = response.data.data.user;
 
       // Update AsyncStorage
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
@@ -303,7 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Change password function
   const changePassword = async (passwordData: PasswordData): Promise<AuthResult> => {
     try {
-      await clientAPI.changeClientPassword(passwordData);
+      await userAPI.changePassword(passwordData);
       console.log('Password changed successfully!');
       return { success: true };
     } catch (error: any) {
@@ -316,14 +316,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Logout function
   const logout = async (): Promise<void> => {
     try {
-      // Client logout endpoint may not exist, so we just clear local storage
-      // If endpoint exists, uncomment: await clientAPI.logout();
+      // Call logout endpoint if available
+      await authAPI.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       // Clear storage regardless of API call success
-      await AsyncStorage.removeItem('clientAccessToken');
-      await AsyncStorage.removeItem('clientRefreshToken');
+      await AsyncStorage.removeItem('accessToken');
+      await AsyncStorage.removeItem('refreshToken');
       await AsyncStorage.removeItem('user');
 
       // Clear Redux state

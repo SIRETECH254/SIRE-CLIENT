@@ -15,7 +15,7 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
-      const token = await AsyncStorage.getItem('clientAccessToken');
+      const token = await AsyncStorage.getItem('accessToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -45,14 +45,14 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await AsyncStorage.getItem('clientRefreshToken');
+        const refreshToken = await AsyncStorage.getItem('refreshToken');
         if (refreshToken) {
-          const response: any = await axios.post(`${API_BASE_URL}/api/clients/refresh-token`, {
+          const response: any = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
             refreshToken,
           });
 
           const { accessToken } = response.data.data;
-          await AsyncStorage.setItem('clientAccessToken', accessToken);
+          await AsyncStorage.setItem('accessToken', accessToken);
 
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return api(originalRequest);

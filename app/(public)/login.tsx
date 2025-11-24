@@ -60,7 +60,7 @@ export default function LoginScreen() {
       }
 
       if (!rememberMe) {
-        await AsyncStorage.removeItem('clientRefreshToken');
+        await AsyncStorage.removeItem('refreshToken');
       }
 
       router.replace('/(public)');
