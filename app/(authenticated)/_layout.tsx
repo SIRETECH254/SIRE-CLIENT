@@ -23,6 +23,7 @@ export default function AuthenticatedLayout() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="projects/index" options={{ headerShown: false }} />
       <Stack.Screen name="projects/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="projects/[id]/attach-assets" options={{ headerShown: false }} />
       <Stack.Screen name="invoices/index" options={{ headerShown: false }} />
       <Stack.Screen name="invoices/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="quotations/index" options={{ headerShown: false }} />

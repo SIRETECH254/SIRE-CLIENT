@@ -83,6 +83,32 @@ export function Sidebar({ isVisible, onClose }: SidebarProps) {
           );
         })}
 
+        {/* Projects Link - Only visible when authenticated */}
+        {isAuthenticated && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => handleNavigate('/(authenticated)/projects')}
+            className={`mb-2 flex-row items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+              pathname?.includes('/projects')
+                ? 'bg-brand-tint text-brand-primary dark:bg-gray-800/80'
+                : 'bg-transparent'
+            }`}>
+            <MaterialIcons
+              name="folder"
+              size={20}
+              color={pathname?.includes('/projects') ? '#7b1c1c' : colorScheme === 'dark' ? '#e5e7eb' : '#374151'}
+            />
+            <Text
+              className={`font-inter text-sm ${
+                pathname?.includes('/projects')
+                  ? 'text-brand-primary font-semibold'
+                  : 'text-gray-700 dark:text-gray-200'
+              }`}>
+              Projects
+            </Text>
+          </Pressable>
+        )}
+
         {/* Profile Link - Only visible when authenticated, shown as last navigation item */}
         {isAuthenticated && (
           <Pressable

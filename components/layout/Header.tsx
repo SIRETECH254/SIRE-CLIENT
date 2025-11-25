@@ -195,6 +195,28 @@ export function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) {
             </Link>
           );
         })}
+        
+        {/* Authenticated Navigation Links - Only visible when authenticated */}
+        {user && (
+          <Link href="/(authenticated)/projects" asChild>
+            <Pressable
+              accessibilityRole="button"
+              className={`px-3 py-2 rounded-lg ${
+                pathname?.includes('/projects')
+                  ? 'bg-brand-tint'
+                  : 'bg-transparent'
+              }`}>
+              <Text
+                className={`font-inter text-sm ${
+                  pathname?.includes('/projects')
+                    ? 'text-brand-primary font-semibold'
+                    : 'text-gray-700 dark:text-gray-200'
+                }`}>
+                Projects
+              </Text>
+            </Pressable>
+          </Link>
+        )}
       </View>
 
       {/* Right Section: Login Button or User Menu */}
