@@ -163,6 +163,9 @@ import { useGetProfile } from '@/tanstack/useUsers';
   - Socket.IO connection established on mount
   - Subscribe to payment updates via `subscribe-to-payment` event
   - Listen for `callback.received` event (M-Pesa callback from Safaricom)
+    - Handles both `CODE` (uppercase) and `code` (lowercase) fields in payload
+    - Parses result code from string or number format
+    - Validates result code presence before processing
   - Listen for `payment.updated` event (database updates)
   - Handle M-Pesa result codes (0 = success, 1 = insufficient balance, 1032 = cancelled, etc.)
   - If no response after 60 seconds: fallback to API polling using `useQueryMpesaStatus(checkoutId)`
@@ -230,8 +233,10 @@ import { useGetProfile } from '@/tanstack/useUsers';
    - Should call `refetch()` from `useGetPayment` to get latest payment data via API
    - Sets `socketConnected` to `true` and clears `socketError`
 2. `callback.received` - M-Pesa callback from Safaricom
-   - Payload contains `CODE` (result code) and `message`
+   - Payload contains result code (as `CODE` uppercase or `code` lowercase) and `message`
+   - Result code can be a number or string (parsed to number if string)
    - Handled by `handleMpesaResultCode()` function
+   - Validates result code presence and logs warning if missing
    - Clears all timers when final status is received
 3. `payment.updated` - Database payment update
    - Payload contains `paymentId` and `status`
@@ -259,24 +264,31 @@ import { useGetProfile } from '@/tanstack/useUsers';
    - Sets `socketConnected` to `false`
 
 #### M-Pesa Result Codes
-- `0` - Success (payment completed)
-- `1` - Insufficient M-Pesa balance
-- `1032` - Payment cancelled by user
-- `1037` - Payment timeout (could not reach phone)
-- `2001` - Wrong PIN entered
-- `1001` - Unable to complete transaction
-- `1019` - Transaction expired
-- `1025` - Invalid phone number
-- `1026` - System error occurred
-- `1036` - Internal error occurred
-- `1050` - Too many payment attempts
-- `9999` - Keep waiting (processing)
+- Result codes are extracted from the callback payload, checking both `CODE` (uppercase) and `code` (lowercase) fields
+- Codes can be received as numbers or strings (automatically parsed to numbers)
+- Supported result codes:
+  - `0` - Success (payment completed)
+  - `1` - Insufficient M-Pesa balance
+  - `1032` - Payment cancelled by user
+  - `1037` - Payment timeout (could not reach phone)
+  - `2001` - Wrong PIN entered
+  - `1001` - Unable to complete transaction
+  - `1019` - Transaction expired
+  - `1025` - Invalid phone number
+  - `1026` - System error occurred
+  - `1036` - Internal error occurred
+  - `1050` - Too many payment attempts
+  - `9999` - Keep waiting (processing)
+  - Any other code - Treated as failed with error message
+- If result code is missing from payload, a warning is logged and the payment is treated as failed
 
 #### Fallback Mechanism
 - M-Pesa only: After 60 seconds (`FALLBACK_TIMEOUT`), if no Socket.IO update received
 - Queries Safaricom directly via `useQueryMpesaStatus(checkoutId)`
-- Parses result code and description from response
-- Updates payment status based on result code
+- Parses result code from multiple possible fields: `resultCode`, `raw.ResultCode`, or `CODE`
+- Handles both string and number formats (parses strings to numbers)
+- Extracts result description from: `resultDesc`, `raw.ResultDesc`, `message`, or default message
+- Updates payment status based on result code using same `handleMpesaResultCode()` function
 - Clears all timers and disconnects socket after fallback completes
 
 #### Cleanup
