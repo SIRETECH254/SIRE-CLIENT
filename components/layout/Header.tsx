@@ -198,24 +198,44 @@ export function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) {
         
         {/* Authenticated Navigation Links - Only visible when authenticated */}
         {user && (
-          <Link href="/(authenticated)/projects" asChild>
-            <Pressable
-              accessibilityRole="button"
-              className={`px-3 py-2 rounded-lg ${
-                pathname?.includes('/projects')
-                  ? 'bg-brand-tint'
-                  : 'bg-transparent'
-              }`}>
-              <Text
-                className={`font-inter text-sm ${
+          <>
+            <Link href="/(authenticated)/projects" asChild>
+              <Pressable
+                accessibilityRole="button"
+                className={`px-3 py-2 rounded-lg ${
                   pathname?.includes('/projects')
-                    ? 'text-brand-primary font-semibold'
-                    : 'text-gray-700 dark:text-gray-200'
+                    ? 'bg-brand-tint'
+                    : 'bg-transparent'
                 }`}>
-                Projects
-              </Text>
-            </Pressable>
-          </Link>
+                <Text
+                  className={`font-inter text-sm ${
+                    pathname?.includes('/projects')
+                      ? 'text-brand-primary font-semibold'
+                      : 'text-gray-700 dark:text-gray-200'
+                  }`}>
+                  Projects
+                </Text>
+              </Pressable>
+            </Link>
+            <Link href="/(authenticated)/quotations" asChild>
+              <Pressable
+                accessibilityRole="button"
+                className={`px-3 py-2 rounded-lg ${
+                  pathname?.includes('/quotations')
+                    ? 'bg-brand-tint'
+                    : 'bg-transparent'
+                }`}>
+                <Text
+                  className={`font-inter text-sm ${
+                    pathname?.includes('/quotations')
+                      ? 'text-brand-primary font-semibold'
+                      : 'text-gray-700 dark:text-gray-200'
+                  }`}>
+                  Quotations
+                </Text>
+              </Pressable>
+            </Link>
+          </>
         )}
       </View>
 

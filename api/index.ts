@@ -64,21 +64,11 @@ export const serviceAPI = {
 
 // Quotation API calls
 export const quotationAPI = {
-  // Get all quotations (admin)
-  getAllQuotations: (params?: any) => api.get('/api/quotations', { params }),
+  // Get client quotations
+  getClientQuotations: (clientId: string) => api.get(`/api/quotations/client/${clientId}`),
 
   // Get single quotation
   getQuotation: (quotationId: string) => api.get(`/api/quotations/${quotationId}`),
-
-  // Create quotation (admin)
-  createQuotation: (quotationData: any) => api.post('/api/quotations', quotationData),
-
-  // Update quotation (admin)
-  updateQuotation: (quotationId: string, quotationData: any) =>
-    api.put(`/api/quotations/${quotationId}`, quotationData),
-
-  // Delete quotation (admin)
-  deleteQuotation: (quotationId: string) => api.delete(`/api/quotations/${quotationId}`),
 
   // Accept quotation (client)
   acceptQuotation: (quotationId: string) => api.post(`/api/quotations/${quotationId}/accept`),
@@ -86,16 +76,8 @@ export const quotationAPI = {
   // Reject quotation (client)
   rejectQuotation: (quotationId: string) => api.post(`/api/quotations/${quotationId}/reject`),
 
-  // Convert to invoice (admin)
-  convertToInvoice: (quotationId: string) =>
-    api.post(`/api/quotations/${quotationId}/convert-to-invoice`),
-
-  // Generate PDF
-  generateQuotationPDF: (quotationId: string) =>
-    api.get(`/api/quotations/${quotationId}/pdf`, { responseType: 'blob' }),
-
-  // Send quotation via email (admin)
-  sendQuotation: (quotationId: string) => api.post(`/api/quotations/${quotationId}/send`),
+  // Generate PDF (returns JSON with pdfUrl)
+  generateQuotationPDF: (quotationId: string) => api.get(`/api/quotations/${quotationId}/pdf`),
 };
 
 // Invoice API calls

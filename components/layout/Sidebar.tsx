@@ -109,6 +109,32 @@ export function Sidebar({ isVisible, onClose }: SidebarProps) {
           </Pressable>
         )}
 
+        {/* Quotations Link - Only visible when authenticated */}
+        {isAuthenticated && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => handleNavigate('/(authenticated)/quotations')}
+            className={`mb-2 flex-row items-center gap-3 rounded-xl px-3 py-3 text-sm ${
+              pathname?.includes('/quotations')
+                ? 'bg-brand-tint text-brand-primary dark:bg-gray-800/80'
+                : 'bg-transparent'
+            }`}>
+            <MaterialIcons
+              name="description"
+              size={20}
+              color={pathname?.includes('/quotations') ? '#7b1c1c' : colorScheme === 'dark' ? '#e5e7eb' : '#374151'}
+            />
+            <Text
+              className={`font-inter text-sm ${
+                pathname?.includes('/quotations')
+                  ? 'text-brand-primary font-semibold'
+                  : 'text-gray-700 dark:text-gray-200'
+              }`}>
+              Quotations
+            </Text>
+          </Pressable>
+        )}
+
         {/* Profile Link - Only visible when authenticated, shown as last navigation item */}
         {isAuthenticated && (
           <Pressable
