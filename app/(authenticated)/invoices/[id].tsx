@@ -182,9 +182,9 @@ export default function InvoiceDetailPage() {
   };
 
   const handlePayment = () => {
-    // Non-functional for now - placeholder
-    setErrorMessage(null);
-    setSuccessMessage('Payment functionality coming soon');
+    if (invoiceId) {
+      router.push(`/(authenticated)/payments/initiate?invoiceId=${invoiceId}` as any);
+    }
   };
 
   if (isLoading && !invoice) {
@@ -426,11 +426,23 @@ export default function InvoiceDetailPage() {
 
           {/* Payment History */}
           <View className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <View className="flex-row items-center gap-2 mb-3">
-              <MaterialIcons name="history" size={20} color="#7b1c1c" />
-              <Text className="font-poppins text-lg font-semibold text-gray-900 dark:text-gray-50">
-                Payment History (Last 5)
-              </Text>
+            <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center gap-2">
+                <MaterialIcons name="history" size={20} color="#7b1c1c" />
+                <Text className="font-poppins text-lg font-semibold text-gray-900 dark:text-gray-50">
+                  Payment History (Last 5)
+                </Text>
+              </View>
+              {payments.length > 0 && (
+                <Pressable
+                  onPress={() => router.push(`/(authenticated)/payments?invoiceId=${invoiceId}` as any)}
+                  className="flex-row items-center gap-1">
+                  <Text className="font-inter text-sm font-semibold text-brand-primary">
+                    View More
+                  </Text>
+                  <MaterialIcons name="chevron-right" size={16} color="#7b1c1c" />
+                </Pressable>
+              )}
             </View>
             {isLoadingPayments ? (
               <View className="py-4">
@@ -452,9 +464,10 @@ export default function InvoiceDetailPage() {
                   const paymentStatus = payment.status || 'completed';
 
                   return (
-                    <View
+                    <Pressable
                       key={paymentId}
-                      className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                      onPress={() => router.push(`/(authenticated)/payments/${paymentId}` as any)}
+                      className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0 active:opacity-70">
                       <View className="flex-row items-center justify-between gap-2">
                         <View className="flex-1">
                           <Text className="font-inter text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -483,13 +496,16 @@ export default function InvoiceDetailPage() {
                             ) : null}
                           </View>
                         </View>
-                        {paymentDate ? (
-                          <Text className="font-inter text-xs text-gray-500 dark:text-gray-400">
-                            {formatDate(paymentDate)}
-                          </Text>
-                        ) : null}
+                        <View className="flex-row items-center gap-2">
+                          {paymentDate ? (
+                            <Text className="font-inter text-xs text-gray-500 dark:text-gray-400">
+                              {formatDate(paymentDate)}
+                            </Text>
+                          ) : null}
+                          <MaterialIcons name="chevron-right" size={16} color="#9ca3af" />
+                        </View>
                       </View>
-                    </View>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -513,16 +529,15 @@ export default function InvoiceDetailPage() {
 
           {/* Action Buttons */}
           <View className="gap-3">
-            {/* Payment Button - Non-functional */}
+            {/* Payment Button */}
             {remainingBalance > 0 && status !== 'cancelled' ? (
               <Pressable
                 onPress={handlePayment}
-                disabled={true}
-                className="rounded-xl border-2 border-gray-400 bg-gray-100 px-6 py-4">
+                className="rounded-xl border-2 border-brand-primary bg-brand-primary px-6 py-4 active:bg-brand-accent">
                 <View className="flex-row items-center justify-center gap-2">
-                  <MaterialIcons name="payment" size={20} color="#6b7280" />
-                  <Text className="font-inter text-base font-semibold text-gray-500">
-                    Make Payment (Coming Soon)
+                  <MaterialIcons name="payment" size={20} color="#ffffff" />
+                  <Text className="font-inter text-base font-semibold text-white">
+                    Make Payment
                   </Text>
                 </View>
               </Pressable>
