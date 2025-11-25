@@ -80,39 +80,28 @@ export const quotationAPI = {
   generateQuotationPDF: (quotationId: string) => api.get(`/api/quotations/${quotationId}/pdf`),
 };
 
-// Invoice API calls
+// Invoice API calls (Client)
 export const invoiceAPI = {
-  // Get all invoices (admin)
-  getAllInvoices: (params?: any) => api.get('/api/invoices', { params }),
+  // Get client invoices
+  getClientInvoices: (clientId: string) => api.get(`/api/invoices/client/${clientId}`),
 
   // Get single invoice
   getInvoice: (invoiceId: string) => api.get(`/api/invoices/${invoiceId}`),
 
-  // Create invoice (admin)
-  createInvoice: (invoiceData: any) => api.post('/api/invoices', invoiceData),
-
-  // Update invoice (admin)
-  updateInvoice: (invoiceId: string, invoiceData: any) =>
-    api.put(`/api/invoices/${invoiceId}`, invoiceData),
-
-  // Delete invoice (admin)
-  deleteInvoice: (invoiceId: string) => api.delete(`/api/invoices/${invoiceId}`),
-
-  // Mark as paid (admin)
-  markAsPaid: (invoiceId: string) => api.patch(`/api/invoices/${invoiceId}/mark-paid`),
-
-  // Mark as overdue (admin)
-  markAsOverdue: (invoiceId: string) => api.patch(`/api/invoices/${invoiceId}/mark-overdue`),
-
-  // Cancel invoice (admin)
-  cancelInvoice: (invoiceId: string) => api.patch(`/api/invoices/${invoiceId}/cancel`),
-
   // Generate PDF
   generateInvoicePDF: (invoiceId: string) =>
-    api.get(`/api/invoices/${invoiceId}/pdf`, { responseType: 'blob' }),
+    api.get(`/api/invoices/${invoiceId}/pdf`),
 
-  // Send invoice via email (admin)
-  sendInvoice: (invoiceId: string) => api.post(`/api/invoices/${invoiceId}/send`),
+  // Admin endpoints (commented out - not used in client app)
+  // getAllInvoices: (params?: any) => api.get('/api/invoices', { params }),
+  // createInvoice: (invoiceData: any) => api.post('/api/invoices', invoiceData),
+  // updateInvoice: (invoiceId: string, invoiceData: any) =>
+  //   api.put(`/api/invoices/${invoiceId}`, invoiceData),
+  // deleteInvoice: (invoiceId: string) => api.delete(`/api/invoices/${invoiceId}`),
+  // markAsPaid: (invoiceId: string) => api.patch(`/api/invoices/${invoiceId}/mark-paid`),
+  // markAsOverdue: (invoiceId: string) => api.patch(`/api/invoices/${invoiceId}/mark-overdue`),
+  // cancelInvoice: (invoiceId: string) => api.patch(`/api/invoices/${invoiceId}/cancel`),
+  // sendInvoice: (invoiceId: string) => api.post(`/api/invoices/${invoiceId}/send`),
 };
 
 // Payment API calls

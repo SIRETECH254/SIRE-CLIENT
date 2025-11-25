@@ -235,6 +235,24 @@ export function Header({ onToggleSidebar, isSidebarOpen }: HeaderProps) {
                 </Text>
               </Pressable>
             </Link>
+            <Link href="/(authenticated)/invoices" asChild>
+              <Pressable
+                accessibilityRole="button"
+                className={`px-3 py-2 rounded-lg ${
+                  pathname?.includes('/invoices')
+                    ? 'bg-brand-tint'
+                    : 'bg-transparent'
+                }`}>
+                <Text
+                  className={`font-inter text-sm ${
+                    pathname?.includes('/invoices')
+                      ? 'text-brand-primary font-semibold'
+                      : 'text-gray-700 dark:text-gray-200'
+                  }`}>
+                  Invoices
+                </Text>
+              </Pressable>
+            </Link>
           </>
         )}
       </View>
