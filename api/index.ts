@@ -284,6 +284,9 @@ export const contactAPI = {
   // Get all messages (admin)
   getAllMessages: (params?: any) => api.get('/api/contact', { params }),
 
+  // Get current user's messages
+  getMyMessages: (params?: any) => api.get('/api/contact/my-messages', { params }),
+
   // Get single message
   getMessage: (id: string) => api.get(`/api/contact/${id}`),
 

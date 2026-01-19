@@ -14,6 +14,19 @@ export const useGetAllMessages = (params: any = {}) => {
   });
 };
 
+// Get current user's messages
+export const useGetMyMessages = (params: any = {}) => {
+  return useQuery({
+    queryKey: ['contact', 'my-messages', params],
+    queryFn: async () => {
+      const response = await contactAPI.getMyMessages(params);
+      return response.data;
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+  });
+};
+
 // Get single message
 export const useGetMessage = (messageId: string) => {
   return useQuery({
