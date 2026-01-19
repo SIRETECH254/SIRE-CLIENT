@@ -1,30 +1,98 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ImageBackground, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
 export default function LandingPage() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  
+  // Calculate responsive hero height based on screen size
+  // Mobile: ~50% of screen height, Tablet: ~60%, Desktop: ~70%
+  const getHeroHeight = () => {
+    if (width < 640) {
+      // Mobile
+      return height * 0.5;
+    } else if (width < 1024) {
+      // Tablet
+      return height * 0.6;
+    } else {
+      // Desktop
+      return height * 0.7;
+    }
+  };
+
+  const heroHeight = getHeroHeight();
 
   return (
     <ScrollView className="flex-1 bg-white">
-      <ThemedView className="px-6 py-12">
-        {/* Hero Section */}
-        <View className="mb-12">
-          <ThemedText type="title" className="text-4xl font-poppins font-bold text-brand-primary mb-4">
+      {/* Hero Section with Background Image */}
+      <ImageBackground
+        source={require('@/assets/images/Boao Forum For Asia Technology Blue Advertising Background Backgrounds _ PSD Free Download - Pikbest.jpeg')}
+        resizeMode="cover"
+        style={{
+          width: '100%',
+          height: heroHeight,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+        className="relative"
+      >
+        {/* Dark overlay for better text readability */}
+        <View 
+          style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            backgroundColor: 'rgba(0, 0, 0, 0.4)' 
+          }}
+        />
+        
+        {/* Hero Content */}
+        <View className="px-6 py-8 items-center justify-center" style={{ zIndex: 1 }}>
+          {/* Big Heading */}
+          <ThemedText 
+            type="title" 
+            className="text-4xl md:text-5xl lg:text-6xl font-poppins font-bold text-white mb-4 text-center"
+            style={{ 
+              color: '#ffffff',
+              textShadowColor: 'rgba(0, 0, 0, 0.75)', 
+              textShadowOffset: { width: 0, height: 2 }, 
+              textShadowRadius: 4 
+            }}
+          >
             Welcome to SIRE TECH
           </ThemedText>
-          <ThemedText className="text-lg font-inter text-gray-700 mb-6">
+          
+          {/* Small Subheading */}
+          <ThemedText 
+            className="text-lg md:text-xl lg:text-2xl font-inter text-white mb-8 text-center max-w-2xl"
+            style={{ 
+              color: '#ffffff',
+              textShadowColor: 'rgba(0, 0, 0, 0.5)', 
+              textShadowOffset: { width: 0, height: 1 }, 
+              textShadowRadius: 3 
+            }}
+          >
             Innovative technology solutions for your business needs.
           </ThemedText>
+          
+          {/* CTA Button */}
           <TouchableOpacity
             onPress={() => router.push('/(public)/login')}
-            className="bg-brand-primary px-6 py-3 rounded-xl">
-            <Text className="text-white font-inter font-semibold text-base">
+            className="bg-brand-primary px-8 py-4 rounded-xl shadow-lg"
+          >
+            <Text className="text-white font-inter font-semibold text-base md:text-lg">
               Login
             </Text>
           </TouchableOpacity>
         </View>
+      </ImageBackground>
+
+      {/* Rest of the content */}
+      <ThemedView className="px-6 py-12">
 
         {/* Services Preview */}
         <View className="mb-12">
