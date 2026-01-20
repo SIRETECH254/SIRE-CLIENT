@@ -101,9 +101,38 @@ export default function QuotationsPage() {
     router.push(`/(authenticated)/quotations/${quotationId}`);
   };
 
-  if (isLoading && !quotations.length) {
-    return <Loading fullScreen message="Loading quotations..." />;
-  }
+  // Quotation Skeleton Component
+  const QuotationSkeleton = () => (
+    <View className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <View className="gap-4">
+        {/* Header */}
+        <View className="flex-row items-start justify-between gap-3">
+          <View className="flex-1">
+            <View className="h-6 bg-gray-200 rounded mb-2 w-3/4 dark:bg-gray-700" />
+            <View className="h-4 bg-gray-200 rounded w-2/3 dark:bg-gray-700" />
+          </View>
+          <View className="w-6 h-6 bg-gray-200 rounded dark:bg-gray-700" />
+        </View>
+
+        {/* Status Badge */}
+        <View className="flex-row items-center gap-2">
+          <View className="h-6 bg-gray-200 rounded-full w-24 dark:bg-gray-700" />
+        </View>
+
+        {/* Amount */}
+        <View className="flex-row items-center justify-between">
+          <View className="h-4 bg-gray-200 rounded w-20 dark:bg-gray-700" />
+          <View className="h-5 bg-gray-200 rounded w-24 dark:bg-gray-700" />
+        </View>
+
+        {/* Dates */}
+        <View className="flex-row items-center gap-4">
+          <View className="h-3 bg-gray-200 rounded w-32 dark:bg-gray-700" />
+          <View className="h-3 bg-gray-200 rounded w-28 dark:bg-gray-700" />
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <ThemedView className="flex-1 bg-slate-50 dark:bg-gray-950">
@@ -126,7 +155,15 @@ export default function QuotationsPage() {
             <Alert variant="error" message={errorMessage} className="w-full" />
           ) : null}
 
-          {!isLoading && quotations.length === 0 ? (
+          {isLoading && !quotations.length && (
+            <View className="gap-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <QuotationSkeleton key={`skeleton-${index}`} />
+              ))}
+            </View>
+          )}
+
+          {!isLoading && quotations.length === 0 && (
             <View className="items-center justify-center py-12">
               <MaterialIcons name="description" size={64} color="#9ca3af" />
               <Text className="font-inter text-lg font-semibold text-gray-700 dark:text-gray-300 mt-4">
@@ -136,7 +173,9 @@ export default function QuotationsPage() {
                 You don't have any quotations yet.
               </Text>
             </View>
-          ) : (
+          )}
+
+          {!isLoading && quotations.length > 0 && (
             <View className="gap-4">
               {quotations.map((quotation: any) => {
                 const quotationId = quotation._id || quotation.id;
